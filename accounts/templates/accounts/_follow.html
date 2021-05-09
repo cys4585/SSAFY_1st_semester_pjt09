@@ -1,0 +1,49 @@
+<div class="jumbotron text-center text-white bg-dark">
+  <p class="lead mb-1">작성자 정보</p>
+  <h1 class="display-4">{{ person.username }}</h1>
+  <hr>
+  {% with followings=person.followings.all followers=person.followers.all %}
+    <p id="p-follow-tag" class="lead">
+      팔로잉 : {{ followings|length }} / 팔로워 : {{ followers|length }}
+    </p>
+    <!-- 팔로우 버튼 -->
+    {% if request.user != person %}
+      <form id="follow-form" data-user-id="{{ person.pk }}">
+        {% csrf_token %}
+        {% if request.user in followers %}
+          <button id="follow-{{ person.pk }}" class="btn-secondary btn-lg" role="button">Unfollow</button>
+        {% else %}
+          <button id="follow-{{ person.pk }}" class="btn-primary btn-lg" role="button">Follow</button>
+        {% endif %}
+      </form>
+    {% endif %}
+  {% endwith %}
+</div>
+<script>
+    const form = document.querySelector('#follow-form')
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value
+    if (form) {
+        form.addEventListener('submit', event => {
+            event.preventDefault()
+            const { userId } = event.target.dataset
+            axios({
+              method: 'post',
+              url: `/accounts/follow/${userId}/`,
+              headers: {'X-CSRFToken': csrftoken}
+            })
+            .then(response => {
+              const { flag_follow, cnt_following, cnt_follower } = response.data
+              const buttonFollow = document.querySelector(`#follow-${userId}`)
+              document.querySelector(`#p-follow-tag`).innerText = `팔로잉 : ${cnt_following} / 팔로워 : ${cnt_follower}`
+              if (flag_follow) {
+                buttonFollow.innerText = "Unfollow"
+                buttonFollow.setAttribute("class", "btn-secondary btn-lg")
+              } else {
+                buttonFollow.innerText = "Follow"
+                buttonFollow.setAttribute("class", "btn-primary btn-lg")
+              }
+            })
+            .catch(error => console.log(error))
+        })
+    }
+</script>
